@@ -27,7 +27,9 @@ ________________________________________________________________________________
  -->
 <robot xmlns:xacro="http://www.ros.org/wiki/xacro"  name="hyperdog">
 
-
+    <!-- ****************   INCLUDES OTHER FILES  ******************* -->
+    <xacro:include filename="gazebo_ros2_control_plugin.xacro" /> 
+    <xacro:include filename="hyperdog_gazebo.xacro" />
     <!-- ***************  CONFIGURE ROBOT"S LINKS  *******************-->
    
     <xacro:include filename="hyperdog_urdf_links.xacro" /> 
@@ -36,9 +38,7 @@ ________________________________________________________________________________
     <xacro:include filename="hyperdog_urdf_joints.xacro" /> 
 
 
-    <!-- ****************   INCLUDES OTHER FILES  ******************* -->
-    <xacro:include filename="gazebo_ros2_control_plugin.xacro" /> 
-    <xacro:include filename="hyperdog_gazebo.xacro" />
+
 
 
 

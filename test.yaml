@@ -1,0 +1,16 @@
+states: [true, false, false]
+gait_type: 1
+pose:
+  position:
+    x: 1.0
+    y: 0.5
+    z: 0.2
+  orientation:
+    x: 0.0
+    y: 0.0
+    z: 0.0
+    w: 1.0
+gait_step:
+  x: 0.1
+  y: 0.0
+  z: 0.05

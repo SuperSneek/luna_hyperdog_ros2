@@ -192,7 +192,6 @@ def generate_launch_description():
     declare_use_simulator_cmd,
     gazebo,
 
-    spawn_entity,
     # load_joint_state_controller,
     # laod_forward_command_controller,
 
