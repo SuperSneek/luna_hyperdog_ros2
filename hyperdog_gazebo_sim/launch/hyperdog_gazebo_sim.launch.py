@@ -35,6 +35,8 @@ from launch_ros.actions import Node
 from launch_ros.substitutions import FindPackageShare
 from launch.event_handlers import OnProcessExit
 
+from launch.substitutions import PathJoinSubstitution
+
 import xacro
 
 # configure robot's urdf file
@@ -44,7 +46,7 @@ xacro_file = os.path.join(get_package_share_directory(pkg_hyperdog_gazebo),robot
 robot_description_raw = xacro.process_file(xacro_file).toxml()
 
 #configure gazebo
-pkg_gazebo_ros = FindPackageShare(package='gazebo_ros').find('gazebo_ros') 
+pkg_ros_gz_sim = FindPackageShare(package='ros_gz_sim').find('ros_gz_sim') 
 pkg_hyperdog_gazebo = FindPackageShare(package='hyperdog_gazebo_sim').find('hyperdog_gazebo_sim')
 
 # Set the path to the world file
@@ -62,6 +64,13 @@ teleop_launch_file = "/hyperdog_teleop.launch.py"
 # set the controller
 gazebo_controller = 'hyperdog_joint_controller'
  
+robot_controllers = PathJoinSubstitution(
+  [
+      FindPackageShare("hyperdog_gazebo_sim"),
+      "config",
+      "hyperdog_joint_controller.yaml",
+  ]
+)
 
  
 def generate_launch_description():
@@ -69,7 +78,8 @@ def generate_launch_description():
   headless = LaunchConfiguration('headless')
   use_sim_time = LaunchConfiguration('use_sim_time')
   use_simulator = LaunchConfiguration('use_simulator')
-  world = LaunchConfiguration('world')
+  pkg_hyperdog_sim = get_package_share_directory('hyperdog_gazebo_sim')
+  world = os.path.join(pkg_hyperdog_sim, 'worlds', 'flat.sdf')
  
   declare_simulator_cmd = DeclareLaunchArgument(
     name='headless',
@@ -85,11 +95,6 @@ def generate_launch_description():
     name='use_simulator',
     default_value='True',
     description='Whether to start the simulator')
- 
-  declare_world_cmd = DeclareLaunchArgument(
-    name='world',
-    default_value='empty.world',#world_path,
-    description='Full path to the world model file to load')
 
   declare_robot_state_publisher = Node(
         package='robot_state_publisher',
@@ -104,40 +109,70 @@ def generate_launch_description():
     output='screen'
   )
     
-  spawn_entity = Node(package='gazebo_ros', executable='spawn_entity.py', 
-                    arguments=['-topic', 'robot_description',
-                               '-entity', 'HyperDog'],
-                    output='screen')
+  robot_controllers_arg = DeclareLaunchArgument(
+      "controller_config_path",
+      default_value=robot_controllers,
+      description="Path to the controller manager parameter file"
+  )
+
+  controller_config_path = LaunchConfiguration("controller_config_path")
+
+  controller_node = Node(
+      package="controller_manager",
+      executable="ros2_control_node",
+      parameters=[controller_config_path],
+      output="both",
+  )
+
+  spawn_entity = Node(
+            package='ros_gz_sim',
+            executable='create',
+            arguments=[
+                '-name', 'luna',
+                '-topic', 'robot_description',
+                '-x', '0',
+                '-y', '0',
+                '-z', '1'
+            ],
+        )
 
   load_joint_state_controller = ExecuteProcess(
-        cmd=['ros2', 'control', 'load_controller', '--set-state', 'start',
+        cmd=['ros2', 'control', 'load_controller', '--set-state', 'active',
             'joint_state_broadcaster'],
         output='screen' )
   
   laod_forward_command_controller = ExecuteProcess(
-        cmd=['ros2', 'control', 'load_controller', '--set-state', 'start', 
+        cmd=['ros2', 'control', 'load_controller', '--set-state', 'active', 
             'gazebo_joint_controller'],
         output='screen'
     )
+  
+  bridge = Node(
+            package='ros_gz_bridge',
+            executable='parameter_bridge',
+            parameters=[{
+                'config_file': os.path.join(pkg_hyperdog_sim, 'config','gz_bridge.yaml'),
+            }],
+            output='screen'
+        )
 
+  pkg_gz_sim = get_package_share_directory('ros_gz_sim')
 
 
   # Specify the actions
   # Start Gazebo server
-  start_gazebo_server_cmd = IncludeLaunchDescription(
-    PythonLaunchDescriptionSource(os.path.join(pkg_gazebo_ros, 'launch', 'gzserver.launch.py')),
-    condition=IfCondition(use_simulator),
-    launch_arguments={'world': world}.items())
- 
-  # Start Gazebo client    
-  start_gazebo_client_cmd = IncludeLaunchDescription(
-    PythonLaunchDescriptionSource(os.path.join(pkg_gazebo_ros, 'launch', 'gzclient.launch.py')),
-    condition=IfCondition(PythonExpression([use_simulator, ' and not ', headless])))
+  gazebo = IncludeLaunchDescription(
+            PythonLaunchDescriptionSource(
+                os.path.join(pkg_gz_sim, 'launch', 'gz_sim.launch.py')
+            ),
+            launch_arguments={'gz_args': f'-r {world}'}.items()
+        )
+
  
 
   # Create the launch description and populate
   return  LaunchDescription([    
-
+    declare_robot_state_publisher,
     RegisterEventHandler(
       event_handler=OnProcessExit(
         target_action=spawn_entity,
@@ -150,18 +185,18 @@ def generate_launch_description():
         on_exit=[laod_forward_command_controller],
       )
     ),
+    bridge,
+    robot_controllers_arg,
     declare_simulator_cmd,
     declare_use_sim_time_cmd,
     declare_use_simulator_cmd,
-    declare_world_cmd,
-
-    start_gazebo_server_cmd,
-    start_gazebo_client_cmd,
+    gazebo,
 
     spawn_entity,
-    declare_robot_state_publisher,
     # load_joint_state_controller,
     # laod_forward_command_controller,
+
+    controller_node,
     hyperdog_gz_joint_ctrl_node,
   
  ])

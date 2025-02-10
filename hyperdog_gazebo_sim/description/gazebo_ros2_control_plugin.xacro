@@ -13,9 +13,9 @@
 
 
     <!-- CONFIGURE JOINTS OF THE ROBOT -->
-    <ros2_control name="GazeboSystem" type="System">
+    <ros2_control name="luna" type="system">
         <hardware>
-            <plugin>gazebo_ros2_control/GazeboSystem</plugin>
+            <plugin>gz_ros2_control/GazeboSimSystem</plugin>
         </hardware>
 
         <joint name="FR_hip_joint">
@@ -165,8 +165,14 @@
 
     <!--  CONFIGURE THE GAZEBO PLUGIN -->
     <gazebo>
-        <plugin filename="libgazebo_ros2_control.so" name="gazebo_ros2_control">
+        <plugin filename="gz_ros2_control-system"
+				name="gz_ros2_control::GazeboSimROS2ControlPlugin">
           <parameters>$(find hyperdog_gazebo_sim)/config/hyperdog_joint_controller.yaml</parameters>
+          <ros>
+		  	<argument>--ros-args</argument>
+		  	<argument>--params-file</argument>
+		  	<argument>$(find hyperdog_gazebo_sim)/config/ros2_control_gz_time.yaml</argument>
+		  </ros>
         </plugin>
     </gazebo>
 

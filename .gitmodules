@@ -1,0 +1,6 @@
+[submodule "src/gz_ros2_control"]
+	path = src/gz_ros2_control
+	url = git@github.com:ros-controls/gazebo_ros2_control.git
+[submodule "gz_ros2_control"]
+	path = gz_ros2_control
+	url = git@github.com:ros-controls/gz_ros2_control.git

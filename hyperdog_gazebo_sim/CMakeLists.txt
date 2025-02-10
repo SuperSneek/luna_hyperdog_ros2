@@ -21,6 +21,7 @@ find_package(rclcpp REQUIRED)
 find_package(std_msgs REQUIRED)
 find_package(hyperdog_msgs REQUIRED)
 find_package(nav_msgs REQUIRED)
+find_package(gz_ros2_control REQUIRED)
 
 add_executable(hyperdog_gazebo_joint_ctrl_node src/hyperdog_gazebo_joint_controller.cpp)
 ament_target_dependencies(hyperdog_gazebo_joint_ctrl_node
@@ -34,6 +35,7 @@ ament_target_dependencies(fake_odom
   std_msgs 
   hyperdog_msgs
   nav_msgs
+  gz_ros2_control
 )
 
 install(TARGETS

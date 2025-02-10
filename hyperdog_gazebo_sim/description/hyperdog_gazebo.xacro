@@ -59,7 +59,6 @@
         <self_collide>1</self_collide>
         <minDepth>0.001</minDepth> 
 
-        <restitution_coefficient>1</restitution_coefficient>
         <threshold>0</threshold>
 
         <material>Gazebo/DarkGrey</material>
