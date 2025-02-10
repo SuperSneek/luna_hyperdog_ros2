@@ -22,6 +22,7 @@ find_package(sensor_msgs REQUIRED)
 find_package(std_msgs REQUIRED)
 find_package(hyperdog_msgs REQUIRED)
 find_package(geometry_msgs REQUIRED)
+find_package(trajectory_msgs REQUIRED)
 
 include_directories(./include/)
 
@@ -32,6 +33,7 @@ ament_target_dependencies(hyperdog_teleop_joy_node
   std_msgs 
   hyperdog_msgs
   geometry_msgs
+  trajectory_msgs
 )
 
 
