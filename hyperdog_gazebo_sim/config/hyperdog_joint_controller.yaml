@@ -1,5 +1,7 @@
 controller_manager:
   ros__parameters:
+    use_sim_time: True
+
     update_rate: 100 #  Hz
 
     joint_trajectory_controller:
@@ -9,9 +11,12 @@ controller_manager:
       type: joint_state_broadcaster/JointStateBroadcaster
 
     gazebo_joint_controller:
-      type: forward_command_controller/ForwardCommandController
+      type: pid_controller/PidController
 
-gazebo_joint_controller:
+    effort_controller:
+      type: effort_controllers/JointGroupEffortController
+
+effort_controller:
   ros__parameters:
     joints:
       - FR_hip_joint
@@ -26,10 +31,44 @@ gazebo_joint_controller:
       - BL_hip_joint
       - BL_uleg_joint
       - BL_lleg_joint
-    interface_name: position
-    command_interfaces:
-      - position 
-    state_interfaces:
-      - position
-      - velocity
-      - effort
+
+
+gazebo_joint_controller:
+  ros__parameters:
+    dof_names:
+      - FR_hip_joint
+      - FR_uleg_joint
+      - FR_lleg_joint
+      - FL_hip_joint
+      - FL_uleg_joint
+      - FL_lleg_joint
+      - BR_hip_joint
+      - BR_uleg_joint
+      - BR_lleg_joint
+      - BL_hip_joint
+      - BL_uleg_joint
+      - BL_lleg_joint
+
+
+    command_interface: effort
+    reference_and_state_interfaces: ["position", "velocity"]
+
+    gains:
+      FR_hip_joint: {p: 150000.0, i: 0.0, d: 5.0, i_clamp_max: 5.0, i_clamp_min: -5.0}
+      FR_uleg_joint: {p: 150000.0, i: 0.0, d: 5.0, i_clamp_max: 5.0, i_clamp_min: -5.0}
+      FR_lleg_joint: {p: 150000.0, i: 0.0, d: 5.0, i_clamp_max: 5.0, i_clamp_min: -5.0}
+      FL_hip_joint: {p: 150000.0, i: 0.0, d: 5.0, i_clamp_max: 5.0, i_clamp_min: -5.0}
+      FL_uleg_joint: {p: 150000.0, i: 0.0, d: 5.0, i_clamp_max: 5.0, i_clamp_min: -5.0}
+      FL_lleg_joint: {p: 150000.0, i: 0.0, d: 5.0, i_clamp_max: 5.0, i_clamp_min: -5.0}
+      BR_hip_joint: {p: 150000.0, i: 0.0, d: 5.0, i_clamp_max: 5.0, i_clamp_min: -5.0}
+      BR_uleg_joint: {p: 150000.0, i: 0.0, d: 5.0, i_clamp_max: 5.0, i_clamp_min: -5.0}
+      BL_knee_joint: {p: 150000.0, i: 0.0, d: 5.0, i_clamp_max: 5.0, i_clamp_min: -5.0}
+      BL_hip_joint: {p: 150000.0, i: 0.0, d: 5.0, i_clamp_max: 5.0, i_clamp_min: -5.0}
+      BL_uleg_joint: {p: 150000.0, i: 0.0, d: 5.0, i_clamp_max: 5.0, i_clamp_min: -5.0}
+      BL_lleg_joint: {p: 150000.0, i: 0.0, d: 5.0, i_clamp_max: 5.0, i_clamp_min: -5.0}
+
+gz_ros_control:
+  ros__parameters:
+    hold_joints: false
+    position_proportional_gain: 1000000.0
+    velocity_proportional_gain: 0.01

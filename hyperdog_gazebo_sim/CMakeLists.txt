@@ -22,11 +22,14 @@ find_package(std_msgs REQUIRED)
 find_package(hyperdog_msgs REQUIRED)
 find_package(nav_msgs REQUIRED)
 find_package(gz_ros2_control REQUIRED)
+find_package(control_msgs REQUIRED)
 
 add_executable(hyperdog_gazebo_joint_ctrl_node src/hyperdog_gazebo_joint_controller.cpp)
 ament_target_dependencies(hyperdog_gazebo_joint_ctrl_node
   rclcpp  
   std_msgs 
+  control_msgs
+  gz_ros2_control
 )
 
 add_executable(fake_odom src/fake_odom.cpp)

@@ -27,7 +27,7 @@ import os
 from black import out
 from launch import LaunchDescription
 from ament_index_python.packages import get_package_share_directory
-from launch.actions import DeclareLaunchArgument, IncludeLaunchDescription, ExecuteProcess, RegisterEventHandler
+from launch.actions import DeclareLaunchArgument, IncludeLaunchDescription, ExecuteProcess, RegisterEventHandler, OpaqueFunction
 from launch.conditions import IfCondition, UnlessCondition
 from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch.substitutions import Command, LaunchConfiguration, PythonExpression
@@ -35,7 +35,7 @@ from launch_ros.actions import Node
 from launch_ros.substitutions import FindPackageShare
 from launch.event_handlers import OnProcessExit
 
-from launch.substitutions import PathJoinSubstitution
+from launch.substitutions import Command, FindExecutable, LaunchConfiguration, PathJoinSubstitution
 
 import xacro
 
@@ -46,11 +46,11 @@ xacro_file = os.path.join(get_package_share_directory(pkg_hyperdog_gazebo),robot
 robot_description_raw = xacro.process_file(xacro_file).toxml()
 
 #configure gazebo
-pkg_ros_gz_sim = FindPackageShare(package='ros_gz_sim').find('ros_gz_sim') 
-pkg_hyperdog_gazebo = FindPackageShare(package='hyperdog_gazebo_sim').find('hyperdog_gazebo_sim')
+pkg_ros_gz_sim = get_package_share_directory('ros_gz_sim')
+pkg_hyperdog_gazebo = get_package_share_directory('hyperdog_gazebo_sim')
 
 # Set the path to the world file
-world_file_name = 'contact.world'
+world_file_name = 'flat.sdf'
 world_path = os.path.join(pkg_hyperdog_gazebo, 'worlds', world_file_name)
 # world_path = os.path.join(pkg_hyperdog_gazebo, 'worlds', 'contact.world')
 
@@ -64,138 +64,104 @@ teleop_launch_file = "/hyperdog_teleop.launch.py"
 # set the controller
 gazebo_controller = 'hyperdog_joint_controller'
  
-robot_controllers = PathJoinSubstitution(
-  [
-      FindPackageShare("hyperdog_gazebo_sim"),
-      "config",
-      "hyperdog_joint_controller.yaml",
-  ]
-)
+
 
  
 def generate_launch_description():
-
+  use_sim_time = LaunchConfiguration('use_sim_time', default=True)
   headless = LaunchConfiguration('headless')
-  use_sim_time = LaunchConfiguration('use_sim_time')
-  use_simulator = LaunchConfiguration('use_simulator')
-  pkg_hyperdog_sim = get_package_share_directory('hyperdog_gazebo_sim')
-  world = os.path.join(pkg_hyperdog_sim, 'worlds', 'flat.sdf')
- 
-  declare_simulator_cmd = DeclareLaunchArgument(
-    name='headless',
-    default_value='False',
-    description='Whether to execute gzclient')
-     
-  declare_use_sim_time_cmd = DeclareLaunchArgument(
-    name='use_sim_time',
-    default_value='true',
-    description='Use simulation (Gazebo) clock if true')
- 
-  declare_use_simulator_cmd = DeclareLaunchArgument(
-    name='use_simulator',
-    default_value='True',
-    description='Whether to start the simulator')
 
-  declare_robot_state_publisher = Node(
+  def robot_state_publisher(context):
+    performed_description_format = LaunchConfiguration('description_format').perform(context)
+    # Get URDF or SDF via xacro
+    robot_description_content = robot_description_raw
+    robot_description = {'robot_description': robot_description_content}
+    node_robot_state_publisher = Node(
         package='robot_state_publisher',
         executable='robot_state_publisher',
         output='screen',
-        parameters=[{'robot_description':robot_description_raw,
-                    'use_sim_time':True}])
+        parameters=[robot_description]
+    )
+    return [node_robot_state_publisher]
   
-  hyperdog_gz_joint_ctrl_node = Node(
-    package='hyperdog_gazebo_sim',
-    executable='hyperdog_gazebo_joint_ctrl_node',
-    output='screen'
-  )
-    
-  robot_controllers_arg = DeclareLaunchArgument(
-      "controller_config_path",
-      default_value=robot_controllers,
-      description="Path to the controller manager parameter file"
-  )
-
-  controller_config_path = LaunchConfiguration("controller_config_path")
-
-  controller_node = Node(
-      package="controller_manager",
-      executable="ros2_control_node",
-      parameters=[controller_config_path],
-      output="both",
+  robot_controllers = PathJoinSubstitution(
+    [
+        FindPackageShare("hyperdog_gazebo_sim"),
+        "config",
+        "hyperdog_joint_controller.yaml",
+    ]
   )
 
   spawn_entity = Node(
-            package='ros_gz_sim',
-            executable='create',
-            arguments=[
-                '-name', 'luna',
-                '-topic', 'robot_description',
-                '-x', '0',
-                '-y', '0',
-                '-z', '1'
-            ],
-        )
-
-  load_joint_state_controller = ExecuteProcess(
-        cmd=['ros2', 'control', 'load_controller', '--set-state', 'active',
-            'joint_state_broadcaster'],
-        output='screen' )
+          package='ros_gz_sim',
+          executable='create',
+          arguments=[
+              '-topic', 'robot_description',
+              '-x', '0',
+              '-y', '0',
+              '-z', '1'
+          ],
+      )
   
-  laod_forward_command_controller = ExecuteProcess(
+  joint_state_broadcaster_spawner = Node(
+        package='controller_manager',
+        executable='spawner',
+        arguments=['joint_state_broadcaster'],
+    )
+  
+  forward_command_controller = ExecuteProcess(
         cmd=['ros2', 'control', 'load_controller', '--set-state', 'active', 
             'gazebo_joint_controller'],
         output='screen'
     )
   
-  bridge = Node(
-            package='ros_gz_bridge',
-            executable='parameter_bridge',
-            parameters=[{
-                'config_file': os.path.join(pkg_hyperdog_sim, 'config','gz_bridge.yaml'),
-            }],
-            output='screen'
-        )
-
-  pkg_gz_sim = get_package_share_directory('ros_gz_sim')
-
-
-  # Specify the actions
-  # Start Gazebo server
-  gazebo = IncludeLaunchDescription(
-            PythonLaunchDescriptionSource(
-                os.path.join(pkg_gz_sim, 'launch', 'gz_sim.launch.py')
-            ),
-            launch_arguments={'gz_args': f'-r {world}'}.items()
-        )
-
- 
-
-  # Create the launch description and populate
-  return  LaunchDescription([    
-    declare_robot_state_publisher,
-    RegisterEventHandler(
-      event_handler=OnProcessExit(
-        target_action=spawn_entity,
-        on_exit=[load_joint_state_controller],
-      )
-    ),
-    RegisterEventHandler(
-      event_handler=OnProcessExit(
-        target_action=load_joint_state_controller,
-        on_exit=[laod_forward_command_controller],
-      )
-    ),
-    bridge,
-    robot_controllers_arg,
-    declare_simulator_cmd,
-    declare_use_sim_time_cmd,
-    declare_use_simulator_cmd,
-    gazebo,
-
-    # load_joint_state_controller,
-    # laod_forward_command_controller,
-
-    controller_node,
-    hyperdog_gz_joint_ctrl_node,
+  effort_controller = ExecuteProcess(
+        cmd=['ros2', 'control', 'load_controller', '--set-state', 'inactive', 
+            'effort_controller'],
+        output='screen'
+    )
   
- ])
+  # Bridge
+  bridge = Node(
+      package='ros_gz_bridge',
+      executable='parameter_bridge',
+      arguments=['/clock@rosgraph_msgs/msg/Clock[gz.msgs.Clock'],
+      output='screen'
+  )
+
+  ld = LaunchDescription([
+      # Launch gazebo environment
+      IncludeLaunchDescription(
+          PythonLaunchDescriptionSource(
+              [PathJoinSubstitution([FindPackageShare('ros_gz_sim'),
+                                     'launch',
+                                     'gz_sim.launch.py'])]),
+          launch_arguments=[('gz_args', [' -r -v 1 empty.sdf'])]),
+      RegisterEventHandler(
+          event_handler=OnProcessExit(
+              target_action=spawn_entity,
+              on_exit=[joint_state_broadcaster_spawner],
+          )
+      ),
+      RegisterEventHandler(
+          event_handler=OnProcessExit(
+              target_action=joint_state_broadcaster_spawner,
+              on_exit=[forward_command_controller, effort_controller],
+          )
+      ),
+      bridge,
+      spawn_entity,
+      # Launch Arguments
+      DeclareLaunchArgument(
+          'use_sim_time',
+          default_value=use_sim_time,
+          description='If true, use simulated clock'),
+      DeclareLaunchArgument(
+          'description_format',
+          default_value='urdf',
+          description='Robot description format to use, urdf or sdf'),
+  ])
+  ld.add_action(OpaqueFunction(function=robot_state_publisher))
+  return ld
+
+  
