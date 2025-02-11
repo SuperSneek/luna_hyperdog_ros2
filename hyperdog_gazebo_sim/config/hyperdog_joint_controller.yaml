@@ -11,7 +11,7 @@ controller_manager:
       type: joint_state_broadcaster/JointStateBroadcaster
 
     gazebo_joint_controller:
-      type: pid_controller/PidController
+      type: forward_command_controller/ForwardCommandController
 
     effort_controller:
       type: effort_controllers/JointGroupEffortController
@@ -33,9 +33,10 @@ effort_controller:
       - BL_lleg_joint
 
 
+
 gazebo_joint_controller:
   ros__parameters:
-    dof_names:
+    joints:
       - FR_hip_joint
       - FR_uleg_joint
       - FR_lleg_joint
@@ -48,27 +49,16 @@ gazebo_joint_controller:
       - BL_hip_joint
       - BL_uleg_joint
       - BL_lleg_joint
-
-
-    command_interface: effort
-    reference_and_state_interfaces: ["position", "velocity"]
-
-    gains:
-      FR_hip_joint: {p: 150000.0, i: 0.0, d: 5.0, i_clamp_max: 5.0, i_clamp_min: -5.0}
-      FR_uleg_joint: {p: 150000.0, i: 0.0, d: 5.0, i_clamp_max: 5.0, i_clamp_min: -5.0}
-      FR_lleg_joint: {p: 150000.0, i: 0.0, d: 5.0, i_clamp_max: 5.0, i_clamp_min: -5.0}
-      FL_hip_joint: {p: 150000.0, i: 0.0, d: 5.0, i_clamp_max: 5.0, i_clamp_min: -5.0}
-      FL_uleg_joint: {p: 150000.0, i: 0.0, d: 5.0, i_clamp_max: 5.0, i_clamp_min: -5.0}
-      FL_lleg_joint: {p: 150000.0, i: 0.0, d: 5.0, i_clamp_max: 5.0, i_clamp_min: -5.0}
-      BR_hip_joint: {p: 150000.0, i: 0.0, d: 5.0, i_clamp_max: 5.0, i_clamp_min: -5.0}
-      BR_uleg_joint: {p: 150000.0, i: 0.0, d: 5.0, i_clamp_max: 5.0, i_clamp_min: -5.0}
-      BL_knee_joint: {p: 150000.0, i: 0.0, d: 5.0, i_clamp_max: 5.0, i_clamp_min: -5.0}
-      BL_hip_joint: {p: 150000.0, i: 0.0, d: 5.0, i_clamp_max: 5.0, i_clamp_min: -5.0}
-      BL_uleg_joint: {p: 150000.0, i: 0.0, d: 5.0, i_clamp_max: 5.0, i_clamp_min: -5.0}
-      BL_lleg_joint: {p: 150000.0, i: 0.0, d: 5.0, i_clamp_max: 5.0, i_clamp_min: -5.0}
+    interface_name: position
+    command_interfaces:
+      - position 
+    state_interfaces:
+      - position
+      - velocity
+      - effort
 
 gz_ros_control:
   ros__parameters:
     hold_joints: false
-    position_proportional_gain: 1000000.0
+    position_proportional_gain: 0.5
     velocity_proportional_gain: 0.01
