@@ -537,7 +537,7 @@ class GaitPlanner():
         while True:
             if self.cmd.mode.walk:
                 if self.cmd.mode.gait_type == 1:
-                    self.cmd.gait.cycle_time = 0.8
+                    self.cmd.gait.cycle_time = 2.8
                     self.cmd.gait.swing_time = 0.5* self.cmd.gait.cycle_time
                     self.body.ZMP_handler[:,:] = 0  
                     self.run_trot()

@@ -2,7 +2,7 @@ controller_manager:
   ros__parameters:
     use_sim_time: True
 
-    update_rate: 100 #  Hz
+    update_rate: 200 #  Hz
 
     joint_trajectory_controller:
       type: joint_trajectory_controller/JointTrajectoryController
@@ -60,5 +60,5 @@ gazebo_joint_controller:
 gz_ros_control:
   ros__parameters:
     hold_joints: false
-    position_proportional_gain: 0.5
-    velocity_proportional_gain: 0.01
+    position_proportional_gain: 1.5
+    velocity_proportional_gain: 0.3
